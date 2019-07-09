@@ -299,7 +299,7 @@ public class ContactsProvider {
                     contact.suffix = cursor.getString(cursor.getColumnIndex(StructuredName.SUFFIX));
                     break;
                 case Phone.CONTENT_ITEM_TYPE:
-                    String phoneNumber = cursor.getString(cursor.getColumnIndex(Phone.NUMBER));
+                    String phoneNumber = cursor.getString(cursor.getColumnIndex(Phone.NORMALIZED_NUMBER));
                     int phoneType = cursor.getInt(cursor.getColumnIndex(Phone.TYPE));
 
                     if (!TextUtils.isEmpty(phoneNumber)) {
