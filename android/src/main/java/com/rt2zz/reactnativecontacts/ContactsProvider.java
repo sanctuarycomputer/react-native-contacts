@@ -296,7 +296,16 @@ public class ContactsProvider {
                     contact.suffix = cursor.getString(cursor.getColumnIndex(StructuredName.SUFFIX));
                     break;
                 case Phone.CONTENT_ITEM_TYPE:
-                    String phoneNumber = cursor.getString(cursor.getColumnIndex(Phone.NORMALIZED_NUMBER));
+                    String number = cursor.getString(cursor.getColumnIndex(Phone.NUMBER));
+                    String normalizedNumber = cursor.getString(cursor.getColumnIndex(Phone.NORMALIZED_NUMBER));
+
+                    String phoneNumber = null;
+                    if (normalizedNumber != null) {
+                        phoneNumber = normalizedNumber;
+                    } else if (number != null) {
+                        phoneNumber = number;
+                    }
+
                     int phoneType = cursor.getInt(cursor.getColumnIndex(Phone.TYPE));
 
                     if (!TextUtils.isEmpty(phoneNumber)) {
