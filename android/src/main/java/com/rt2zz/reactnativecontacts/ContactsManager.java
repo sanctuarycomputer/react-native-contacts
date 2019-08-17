@@ -1,5 +1,6 @@
 package com.rt2zz.reactnativecontacts;
 
+import android.accounts.Account;
 import android.app.Activity;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
@@ -47,11 +48,20 @@ public class ContactsManager extends ReactContextBaseJavaModule {
     private static final String PERMISSION_AUTHORIZED = "authorized";
     private static final String PERMISSION_READ_CONTACTS = Manifest.permission.READ_CONTACTS;
     private static final int PERMISSION_REQUEST_CODE = 888;
+    private static Account SYNC_ACCOUNT = null;
 
     private static Callback requestCallback;
 
     public ContactsManager(ReactApplicationContext reactContext) {
         super(reactContext);
+    }
+
+    public static void setSyncAccount(Account account) {
+        SYNC_ACCOUNT = account;
+    }
+
+    public static void clearSyncAccount() {
+        SYNC_ACCOUNT = null;
     }
 
     /*
@@ -355,8 +365,8 @@ public class ContactsManager extends ReactContextBaseJavaModule {
         ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
 
         ContentProviderOperation.Builder op = ContentProviderOperation.newInsert(RawContacts.CONTENT_URI)
-                .withValue(RawContacts.ACCOUNT_TYPE, null)
-                .withValue(RawContacts.ACCOUNT_NAME, null);
+                .withValue(RawContacts.ACCOUNT_TYPE, SYNC_ACCOUNT == null ? null : SYNC_ACCOUNT.type)
+                .withValue(RawContacts.ACCOUNT_NAME, SYNC_ACCOUNT == null ? null : SYNC_ACCOUNT.name);
         ops.add(op.build());
 
         op = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
@@ -550,8 +560,8 @@ public class ContactsManager extends ReactContextBaseJavaModule {
 
         ContentProviderOperation.Builder op = ContentProviderOperation.newUpdate(RawContacts.CONTENT_URI)
                 .withSelection(ContactsContract.Data.CONTACT_ID + "=?", new String[]{String.valueOf(recordID)})
-                .withValue(RawContacts.ACCOUNT_TYPE, null)
-                .withValue(RawContacts.ACCOUNT_NAME, null);
+                .withValue(RawContacts.ACCOUNT_TYPE, SYNC_ACCOUNT == null ? null : SYNC_ACCOUNT.type)
+                .withValue(RawContacts.ACCOUNT_NAME, SYNC_ACCOUNT == null ? null : SYNC_ACCOUNT.name);
         ops.add(op.build());
 
         op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
