@@ -667,14 +667,36 @@ public class ContactsManager extends ReactContextBaseJavaModule implements Activ
         return stream.toByteArray();
     }
 
+    private static String getContactIdForRawContactId(Context context, String rawContactId) {
+        String contactId = null;
+        String whereClause = StructuredName.NAME_RAW_CONTACT_ID + " = ?";
+        String[] whereArguments = { rawContactId };
+
+        try (Cursor cursor = context.getContentResolver().query(
+                ContactsContract.Contacts.CONTENT_URI,
+                new String[] {ContactsContract.Contacts._ID},
+                whereClause,
+                whereArguments, null
+        )) {
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts._ID));
+                } while (cursor.moveToNext());
+            }
+        } catch (Exception e) {
+            Sentry.captureException(e);
+            e.printStackTrace();
+        }
+        return contactId;
+    }
+
     /*
      * Update contact to phone's addressbook
      */
     @ReactMethod
     public void updateContact(ReadableMap contact, Callback callback) {
-
-        String recordID = contact.hasKey("recordID") ? contact.getString("recordID") : null;
         String rawContactId = contact.hasKey("rawContactId") ? contact.getString("rawContactId") : null;
+        String recordId = getContactIdForRawContactId(mContext, rawContactId);
 
         if (rawContactId == null || recordID == null) {
             callback.invoke("Invalid recordId or rawContactId");
@@ -930,13 +952,13 @@ public class ContactsManager extends ReactContextBaseJavaModule implements Activ
      */
     @ReactMethod
     public void deleteContact(ReadableMap contact, Callback callback) {
-
-        String recordID = contact.hasKey("recordID") ? contact.getString("recordID") : null;
+        String rawContactId = contact.hasKey("rawContactId") ? contact.getString("rawContactId") : null;
+        String recordId = getContactIdForRawContactId(mContext, rawContactId);
 
         try {
                Context ctx = getReactApplicationContext();
 
-               Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI,recordID);
+               Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, recordId);
                ContentResolver cr = ctx.getContentResolver();
                int deleted = cr.delete(uri,null,null);
 
