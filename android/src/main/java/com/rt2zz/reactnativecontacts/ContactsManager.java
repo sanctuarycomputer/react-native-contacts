@@ -502,12 +502,14 @@ public class ContactsManager extends ReactContextBaseJavaModule {
         ReadableArray phoneNumbers = contact.hasKey("phoneNumbers") ? contact.getArray("phoneNumbers") : null;
         int numOfPhones = 0;
         String[] phones = null;
-        Integer[] phonesLabels = null;
+        Integer[] phonesTypes = null;
+        String[] phonesLabels = null;
         String[] phoneIds = null;
         if (phoneNumbers != null) {
             numOfPhones = phoneNumbers.size();
             phones = new String[numOfPhones];
-            phonesLabels = new Integer[numOfPhones];
+            phonesTypes = new Integer[numOfPhones];
+            phonesLabels = new String[numOfPhones];
             phoneIds = new String[numOfPhones];
             for (int i = 0; i < numOfPhones; i++) {
                 ReadableMap phoneMap = phoneNumbers.getMap(i);
@@ -515,7 +517,8 @@ public class ContactsManager extends ReactContextBaseJavaModule {
                 String phoneLabel = phoneMap.getString("label");
                 String phoneId = phoneMap.hasKey("id") ? phoneMap.getString("id") : null;
                 phones[i] = phoneNumber;
-                phonesLabels[i] = mapStringToPhoneType(phoneLabel);
+                phonesTypes[i] = mapStringToPhoneType(phoneLabel);
+                phonesLabels[i] = phoneLabel;
                 phoneIds[i] = phoneId;
             }
         }
@@ -583,20 +586,25 @@ public class ContactsManager extends ReactContextBaseJavaModule {
 
         op.withYieldAllowed(true);
 
-        for (int i = 0; i < numOfPhones; i++) {
-            if (phoneIds[i] == null) {
-                op = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
-                        .withValue(ContactsContract.Data.RAW_CONTACT_ID, String.valueOf(rawContactId))
-                        .withValue(ContactsContract.Data.MIMETYPE, CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                        .withValue(CommonDataKinds.Phone.NUMBER, phones[i])
-                        .withValue(CommonDataKinds.Phone.TYPE, phonesLabels[i]);
-            } else {
-                op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
-                        .withSelection(ContactsContract.Data._ID + "=?", new String[]{String.valueOf(phoneIds[i])})
-                        .withValue(CommonDataKinds.Phone.NUMBER, phones[i])
-                        .withValue(CommonDataKinds.Phone.TYPE, phonesLabels[i]);
-            }
-            ops.add(op.build());
+        if (phoneNumbers != null) {
+          // remove existing phoneNumbers first
+          op = ContentProviderOperation.newDelete(ContactsContract.Data.CONTENT_URI)
+                  .withSelection(
+                      ContactsContract.Data.MIMETYPE  + "=? AND "+ ContactsContract.Data.RAW_CONTACT_ID + " = ?",
+                      new String[]{String.valueOf(CommonDataKinds.Phone.CONTENT_ITEM_TYPE), String.valueOf(rawContactId)}
+                  );
+          ops.add(op.build());
+
+          // add passed phonenumbers
+          for (int i = 0; i < numOfPhones; i++) {
+              op = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
+                      .withValue(ContactsContract.Data.RAW_CONTACT_ID, String.valueOf(rawContactId))
+                      .withValue(ContactsContract.Data.MIMETYPE, CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                      .withValue(CommonDataKinds.Phone.NUMBER, phones[i])
+                      .withValue(CommonDataKinds.Phone.TYPE, phonesTypes[i])
+                      .withValue(CommonDataKinds.Phone.LABEL, phonesLabels[i]);
+              ops.add(op.build());
+          }
         }
 
         for (int i = 0; i < numOfUrls; i++) {
