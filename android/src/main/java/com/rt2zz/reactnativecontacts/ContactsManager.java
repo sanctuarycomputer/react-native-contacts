@@ -24,6 +24,7 @@ import android.provider.ContactsContract.CommonDataKinds.Website;
 import android.provider.ContactsContract.RawContacts;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.database.Cursor;
 
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -479,14 +480,43 @@ public class ContactsManager extends ReactContextBaseJavaModule {
         return stream.toByteArray();       
     }    
 
+    private static String getContactIdForRawContactId(Context context, String rawContactId, Callback callback) {
+        String contactId = null;
+        String whereClause = StructuredName.NAME_RAW_CONTACT_ID + " = ?";
+        String[] whereArguments = { rawContactId };
+
+        try (Cursor cursor = context.getContentResolver().query(
+                ContactsContract.Contacts.CONTENT_URI,
+                new String[] {ContactsContract.Contacts._ID},
+                whereClause,
+                whereArguments, null
+        )) {
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts._ID));
+                } while (cursor.moveToNext());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            callback.invoke(e.toString());
+        }
+        return contactId;
+    }
+
     /*
      * Update contact to phone's addressbook
      */
     @ReactMethod
     public void updateContact(ReadableMap contact, Callback callback) {
+        Context ctx = getReactApplicationContext();
 
-        String recordID = contact.hasKey("recordID") ? contact.getString("recordID") : null;
         String rawContactId = contact.hasKey("rawContactId") ? contact.getString("rawContactId") : null;
+        String recordID = rawContactId == null ? null : getContactIdForRawContactId(ctx, rawContactId, callback);
+
+        if (rawContactId == null || recordID == null) {
+            callback.invoke("Invalid recordId or rawContactId");
+            return;
+        }
 
         String givenName = contact.hasKey("givenName") ? contact.getString("givenName") : null;
         String middleName = contact.hasKey("middleName") ? contact.getString("middleName") : null;
@@ -666,7 +696,6 @@ public class ContactsManager extends ReactContextBaseJavaModule {
             }
         }
 
-        Context ctx = getReactApplicationContext();
         try {
             ContentResolver cr = ctx.getContentResolver();
             ContentProviderResult[] result = cr.applyBatch(ContactsContract.AUTHORITY, ops);
@@ -688,20 +717,20 @@ public class ContactsManager extends ReactContextBaseJavaModule {
      */
     @ReactMethod
     public void deleteContact(ReadableMap contact, Callback callback) {
-
-        String recordID = contact.hasKey("recordID") ? contact.getString("recordID") : null;
-      
         try {
-               Context ctx = getReactApplicationContext();
+            Context ctx = getReactApplicationContext();
 
-               Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI,recordID);
-               ContentResolver cr = ctx.getContentResolver();
-               int deleted = cr.delete(uri,null,null);
+            String rawContactId = contact.hasKey("rawContactId") ? contact.getString("rawContactId") : null;
+            String recordID = rawContactId == null ? null : getContactIdForRawContactId(ctx, rawContactId, callback);
 
-               if(deleted > 0)
-                 callback.invoke(null, recordID); // success
-               else
-                 callback.invoke(null, null); // something was wrong
+            Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI,recordID);
+            ContentResolver cr = ctx.getContentResolver();
+            int deleted = cr.delete(uri,null,null);
+
+            if(deleted > 0)
+                callback.invoke(null, recordID); // success
+            else
+                callback.invoke(null, null); // something was wrong
 
         } catch (Exception e) {
             callback.invoke(e.toString(), null);
