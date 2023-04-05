@@ -713,7 +713,7 @@ public class ContactsManager extends ReactContextBaseJavaModule {
             Context ctx = getReactApplicationContext();
 
             String rawContactId = contact.hasKey("rawContactId") ? contact.getString("rawContactId") : null;
-            String recordID = rawContactId == null ? null : getContactIdForRawContactId(ctx, rawContactId);
+            String recordID = rawContactId == null ? null : getContactIdForRawContactId(ctx, rawContactId, callback);
 
             Uri uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI,recordID);
             ContentResolver cr = ctx.getContentResolver();
