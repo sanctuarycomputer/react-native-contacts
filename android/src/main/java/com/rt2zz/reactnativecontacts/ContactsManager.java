@@ -43,26 +43,49 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+class SyncAccountFragment {
+    public String accountName;
+    public String accountType;
+
+    public SyncAccountFragment(String accountName, String accountType) {
+        this.accountName = accountName;
+        this.accountType = accountType;
+    }
+}
+
 public class ContactsManager extends ReactContextBaseJavaModule {
 
     private static final String PERMISSION_DENIED = "denied";
     private static final String PERMISSION_AUTHORIZED = "authorized";
     private static final String PERMISSION_READ_CONTACTS = Manifest.permission.READ_CONTACTS;
     private static final int PERMISSION_REQUEST_CODE = 888;
-    private static Account SYNC_ACCOUNT = null;
-
+    private static SyncAccountFragment SYNC_ACCOUNT_FRAGMENT = null;
     private static Callback requestCallback;
 
     public ContactsManager(ReactApplicationContext reactContext) {
         super(reactContext);
     }
 
-    public static void setSyncAccount(Account account) {
-        SYNC_ACCOUNT = account;
+    public static void setSyncAccount(String accountName, String accountType) {
+        SYNC_ACCOUNT_FRAGMENT = new SyncAccountFragment(accountName, accountType);
     }
 
     public static void clearSyncAccount() {
-        SYNC_ACCOUNT = null;
+        SYNC_ACCOUNT_FRAGMENT = null;
+    }
+
+    public static String getSyncAccountName() {
+        if (SYNC_ACCOUNT_FRAGMENT != null) {
+            return SYNC_ACCOUNT_FRAGMENT.accountName;
+        }
+        return null;
+    }
+
+    public static String getSyncAccountType() {
+        if (SYNC_ACCOUNT_FRAGMENT != null) {
+            return SYNC_ACCOUNT_FRAGMENT.accountType;
+        }
+        return null;
     }
 
     /*
@@ -366,8 +389,8 @@ public class ContactsManager extends ReactContextBaseJavaModule {
         ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
 
         ContentProviderOperation.Builder op = ContentProviderOperation.newInsert(RawContacts.CONTENT_URI)
-                .withValue(RawContacts.ACCOUNT_TYPE, SYNC_ACCOUNT == null ? null : SYNC_ACCOUNT.type)
-                .withValue(RawContacts.ACCOUNT_NAME, SYNC_ACCOUNT == null ? null : SYNC_ACCOUNT.name);
+                .withValue(RawContacts.ACCOUNT_TYPE, getSyncAccountType())
+                .withValue(RawContacts.ACCOUNT_NAME, getSyncAccountName());
         ops.add(op.build());
 
         op = ContentProviderOperation.newInsert(ContactsContract.Data.CONTENT_URI)
@@ -593,8 +616,8 @@ public class ContactsManager extends ReactContextBaseJavaModule {
 
         ContentProviderOperation.Builder op = ContentProviderOperation.newUpdate(RawContacts.CONTENT_URI)
                 .withSelection(ContactsContract.Data.CONTACT_ID + "=?", new String[]{String.valueOf(recordID)})
-                .withValue(RawContacts.ACCOUNT_TYPE, SYNC_ACCOUNT == null ? null : SYNC_ACCOUNT.type)
-                .withValue(RawContacts.ACCOUNT_NAME, SYNC_ACCOUNT == null ? null : SYNC_ACCOUNT.name);
+                .withValue(RawContacts.ACCOUNT_TYPE, getSyncAccountType())
+                .withValue(RawContacts.ACCOUNT_NAME, getSyncAccountName());
         ops.add(op.build());
 
         op = ContentProviderOperation.newUpdate(ContactsContract.Data.CONTENT_URI)
